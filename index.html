@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camelot Keys - Harmonic Mixing Wheel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #09090b;
+            min-height: 100vh;
+            color: #fafafa;
+        }
+
+        .app {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .logo h1 span {
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+            color: #a1a1aa;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+
+        .btn:hover {
+            background: #27272a;
+            color: #fafafa;
+        }
+
+        .btn.active {
+            background: rgba(168,85,247,0.15);
+            border-color: #a855f7;
+            color: #c084fc;
+        }
+
+        /* Main Layout */
+        .main {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 768px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Wheel */
+        .wheel-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .wheel-svg {
+            filter: drop-shadow(0 20px 40px rgba(0,0,0,0.4));
+        }
+
+        .wheel-segment {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .wheel-segment:hover {
+            filter: brightness(1.25);
+        }
+
+        .wheel-segment.selected {
+            filter: brightness(1.4);
+        }
+
+        .wheel-segment.compatible {
+            animation: pulse 1.8s ease-in-out infinite;
+        }
+
+        .wheel-segment.dimmed {
+            opacity: 0.15;
+        }
+
+        @keyframes pulse {
+            0%, 100% { filter: brightness(1.1); }
+            50% { filter: brightness(1.5); }
+        }
+
+        .seg-text {
+            pointer-events: none;
+            font-family: 'JetBrains Mono', monospace;
+            fill: #fff;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+
+        .seg-text.code { font-size: 11px; font-weight: 600; }
+        .seg-text.key { font-size: 8px; opacity: 0.75; }
+
+        .hub {
+            fill: #09090b;
+            stroke: #27272a;
+            stroke-width: 2;
+        }
+
+        .hub-label {
+            fill: #52525b;
+            font-size: 8px;
+            text-anchor: middle;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .hub-key {
+            fill: #fafafa;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 22px;
+            font-weight: 700;
+            text-anchor: middle;
+        }
+
+        .hub-musical {
+            fill: #71717a;
+            font-size: 12px;
+            text-anchor: middle;
+        }
+
+        .ring-line {
+            fill: none;
+            stroke: rgba(0,0,0,0.5);
+            stroke-width: 2;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Selected Info Card */
+        .selected-card {
+            background: linear-gradient(135deg, #18181b 0%, #1f1f23 100%);
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .selected-card.has-selection {
+            border-color: #3f3f46;
+        }
+
+        .selected-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .selected-header h3 {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #71717a;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .selected-display {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .selected-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fafafa;
+        }
+
+        .selected-musical {
+            font-size: 1rem;
+            color: #71717a;
+        }
+
+        .compat-label {
+            font-size: 0.7rem;
+            color: #52525b;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .compat-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .chip {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .chip:hover { transform: translateY(-1px); }
+
+        .chip.same { background: rgba(34,197,94,0.15); color: #4ade80; }
+        .chip.adjacent { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        .chip.relative { background: rgba(236,72,153,0.15); color: #f472b6; }
+        .chip.parallel { background: rgba(249,115,22,0.15); color: #fb923c; }
+
+        .chip .arrow { font-size: 0.85rem; }
+        .chip .arrow.up { color: #4ade80; }
+        .chip .arrow.down { color: #f472b6; }
+
+        .empty-state {
+            color: #3f3f46;
+            font-size: 0.85rem;
+            padding: 8px 0;
+        }
+
+        /* Legend */
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-dot.same { background: #22c55e; }
+        .legend-dot.adjacent { background: #3b82f6; }
+        .legend-dot.relative { background: #ec4899; }
+        .legend-dot.parallel { background: #f97316; }
+
+        .legend-text {
+            flex: 1;
+            font-size: 0.75rem;
+            color: #a1a1aa;
+        }
+
+        .legend-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #52525b;
+        }
+
+        /* Collapsible Sections */
+        .section {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .section-header:hover {
+            background: #1f1f23;
+        }
+
+        .section-header h4 {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #a1a1aa;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-header .icon { opacity: 0.6; }
+
+        .section-header .chevron {
+            font-size: 0.65rem;
+            color: #52525b;
+            transition: transform 0.2s;
+        }
+
+        .section-header.collapsed .chevron {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            padding: 0 14px 14px;
+        }
+
+        .section-content.hidden {
+            display: none;
+        }
+
+        /* Tips */
+        .tips {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tip {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            background: #27272a;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #a1a1aa;
+            line-height: 1.4;
+        }
+
+        .tip strong { color: #fafafa; }
+
+        /* Journey */
+        .journey {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .journey-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: #27272a;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .journey-step:hover { background: #3f3f46; }
+
+        .journey-num {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3f3f46;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #71717a;
+        }
+
+        .journey-key {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #fafafa;
+        }
+
+        .journey-musical {
+            font-size: 0.7rem;
+            color: #52525b;
+            flex: 1;
+        }
+
+        .journey-tag {
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .journey-tag.start { background: rgba(34,197,94,0.2); color: #4ade80; }
+        .journey-tag.up { background: rgba(59,130,246,0.2); color: #60a5fa; }
+        .journey-tag.mood { background: rgba(236,72,153,0.2); color: #f472b6; }
+        .journey-tag.down { background: rgba(249,115,22,0.2); color: #fb923c; }
+
+        /* Key Reference */
+        .key-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+        }
+
+        .key-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 8px;
+            background: #27272a;
+            border-radius: 4px;
+            font-size: 0.7rem;
+        }
+
+        .key-item .code {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: #a855f7;
+        }
+
+        .key-item .musical {
+            color: #52525b;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 32px 0 16px;
+            font-size: 0.75rem;
+            color: #3f3f46;
+        }
+
+        footer a {
+            color: #a855f7;
+            text-decoration: none;
+        }
+
+        footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <div class="logo">
+                <h1><span>Camelot</span> Keys</h1>
+            </div>
+            <div class="controls">
+                <button class="btn" id="clearBtn" style="display: none;">
+                    <span>✕</span> Clear
+                </button>
+            </div>
+        </header>
+
+        <div class="main">
+            <div class="wheel-area">
+                <svg id="wheel" class="wheel-svg" width="420" height="420" viewBox="0 0 420 420"></svg>
+            </div>
+
+            <div class="info-panel">
+                <!-- Selected Key Card -->
+                <div class="selected-card" id="selectedCard">
+                    <div class="selected-header">
+                        <h3>Selected Key</h3>
+                    </div>
+                    <div class="selected-display">
+                        <span class="selected-code" id="selectedCode">—</span>
+                        <span class="selected-musical" id="selectedMusical">Click any key</span>
+                    </div>
+                    <div class="compat-label">Compatible Keys</div>
+                    <div class="compat-chips" id="compatChips">
+                        <span class="empty-state">Select a key on the wheel</span>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot same"></div>
+                        <span class="legend-text">Same</span>
+                        <span class="legend-value">●</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot adjacent"></div>
+                        <span class="legend-text">Adjacent</span>
+                        <span class="legend-value">±1</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot relative"></div>
+                        <span class="legend-text">Relative</span>
+                        <span class="legend-value">A↔B</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot parallel"></div>
+                        <span class="legend-text">Parallel</span>
+                        <span class="legend-value">±3</span>
+                    </div>
+                </div>
+
+                <!-- Pro Tips -->
+                <div class="section">
+                    <div class="section-header" data-section="tips">
+                        <h4><span class="icon">💡</span> Pro Tips</h4>
+                        <span class="chevron">▼</span>
+                    </div>
+                    <div class="section-content" id="tipsContent">
+                        <div class="tips">
+                            <div class="tip">🔼 <strong>+1 clockwise</strong> = build energy</div>
+                            <div class="tip">🔽 <strong>-1 counter-clockwise</strong> = cool down</div>
+                            <div class="tip">🎭 <strong>A↔B switch</strong> = mood shift</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Example Journey -->
+                <div class="section">
+                    <div class="section-header collapsed" data-section="journey">
+                        <h4><span class="icon">🎵</span> Example Journey</h4>
+                        <span class="chevron">▼</span>
+                    </div>
+                    <div class="section-content hidden" id="journeyContent">
+                        <div class="journey">
+                            <div class="journey-step" data-key="8A">
+                                <span class="journey-num">1</span>
+                                <span class="journey-key">8A</span>
+                                <span class="journey-musical">Am</span>
+                                <span class="journey-tag start">Start</span>
+                            </div>
+                            <div class="journey-step" data-key="9A">
+                                <span class="journey-num">2</span>
+                                <span class="journey-key">9A</span>
+                                <span class="journey-musical">Em</span>
+                                <span class="journey-tag up">+1↑</span>
+                            </div>
+                            <div class="journey-step" data-key="9B">
+                                <span class="journey-num">3</span>
+                                <span class="journey-key">9B</span>
+                                <span class="journey-musical">G</span>
+                                <span class="journey-tag mood">Mood</span>
+                            </div>
+                            <div class="journey-step" data-key="10B">
+                                <span class="journey-num">4</span>
+                                <span class="journey-key">10B</span>
+                                <span class="journey-musical">D</span>
+                                <span class="journey-tag up">+1↑</span>
+                            </div>
+                            <div class="journey-step" data-key="9B">
+                                <span class="journey-num">5</span>
+                                <span class="journey-key">9B</span>
+                                <span class="journey-musical">G</span>
+                                <span class="journey-tag down">-1↓</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- All Keys -->
+                <div class="section">
+                    <div class="section-header collapsed" data-section="keys">
+                        <h4><span class="icon">🔑</span> All Keys</h4>
+                        <span class="chevron">▼</span>
+                    </div>
+                    <div class="section-content hidden" id="keysContent">
+                        <div class="key-grid" id="keyGrid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            Based on the Camelot System · <a href="https://dj.studio/blog/camelot-wheel" target="_blank">Learn More</a>
+        </footer>
+    </div>
+
+    <script>
+        const data = [
+            { n: 1, m: 'A♭m', M: 'B', h: 280 },
+            { n: 2, m: 'E♭m', M: 'F♯', h: 260 },
+            { n: 3, m: 'B♭m', M: 'D♭', h: 240 },
+            { n: 4, m: 'Fm', M: 'A♭', h: 220 },
+            { n: 5, m: 'Cm', M: 'E♭', h: 195 },
+            { n: 6, m: 'Gm', M: 'B♭', h: 170 },
+            { n: 7, m: 'Dm', M: 'F', h: 145 },
+            { n: 8, m: 'Am', M: 'C', h: 120 },
+            { n: 9, m: 'Em', M: 'G', h: 70 },
+            { n: 10, m: 'Bm', M: 'D', h: 40 },
+            { n: 11, m: 'F♯m', M: 'A', h: 15 },
+            { n: 12, m: 'C♯m', M: 'E', h: 350 }
+        ];
+
+        let selected = null;
+        const svg = document.getElementById('wheel');
+        const cx = 210, cy = 210;
+        const R1 = 195, R2 = 140, R3 = 82;
+
+        const polar = (r, a) => {
+            const rad = (a - 90) * Math.PI / 180;
+            return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+        };
+
+        const arc = (r1, r2, a1, a2) => {
+            const s1 = polar(r1, a1), e1 = polar(r1, a2);
+            const s2 = polar(r2, a2), e2 = polar(r2, a1);
+            return `M${s1.x},${s1.y} A${r1},${r1} 0 0 1 ${e1.x},${e1.y} L${s2.x},${s2.y} A${r2},${r2} 0 0 0 ${e2.x},${e2.y} Z`;
+        };
+
+        const color = (h, outer) => `hsl(${h}, ${outer ? 65 : 50}%, ${outer ? 52 : 40}%)`;
+        const wrap = n => n > 12 ? n - 12 : n < 1 ? n + 12 : n;
+
+        const getCompat = key => {
+            if (!key) return { same: [], adj: [], rel: [], par: [] };
+            const n = parseInt(key), l = key.slice(-1), isA = l === 'A';
+            const opp = isA ? 'B' : 'A';
+            return {
+                same: [{ k: key }],
+                adj: [{ k: `${wrap(n+1)}${l}`, d: 'up' }, { k: `${wrap(n-1)}${l}`, d: 'down' }],
+                rel: [{ k: `${n}${opp}` }],
+                par: [{ k: `${wrap(isA ? n+3 : n-3)}${opp}` }]
+            };
+        };
+
+        const getMusical = k => {
+            const n = parseInt(k), l = k.slice(-1);
+            const d = data.find(x => x.n === n);
+            return l === 'A' ? d.m : d.M;
+        };
+
+        function render() {
+            svg.innerHTML = '';
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+            data.forEach((d, i) => {
+                const a1 = i * 30, a2 = a1 + 29.5;
+
+                // Outer (B)
+                const outer = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                outer.setAttribute('d', arc(R1, R2 + 1, a1, a2));
+                outer.setAttribute('fill', color(d.h, true));
+                outer.setAttribute('class', 'wheel-segment');
+                outer.dataset.key = `${d.n}B`;
+                outer.onclick = () => select(`${d.n}B`);
+                g.appendChild(outer);
+
+                // Inner (A)
+                const inner = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                inner.setAttribute('d', arc(R2 - 1, R3 + 1, a1, a2));
+                inner.setAttribute('fill', color(d.h, false));
+                inner.setAttribute('class', 'wheel-segment');
+                inner.dataset.key = `${d.n}A`;
+                inner.onclick = () => select(`${d.n}A`);
+                g.appendChild(inner);
+
+                // Labels
+                const mid = a1 + 15;
+                const pO = polar((R1 + R2) / 2 + 2, mid);
+                const pI = polar((R2 + R3) / 2 + 2, mid);
+
+                [[pO, `${d.n}B`, d.M], [pI, `${d.n}A`, d.m]].forEach(([p, code, key]) => {
+                    const t1 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    t1.setAttribute('x', p.x);
+                    t1.setAttribute('y', p.y - 5);
+                    t1.setAttribute('class', 'seg-text code');
+                    t1.textContent = code;
+                    g.appendChild(t1);
+
+                    const t2 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    t2.setAttribute('x', p.x);
+                    t2.setAttribute('y', p.y + 7);
+                    t2.setAttribute('class', 'seg-text key');
+                    t2.textContent = key;
+                    g.appendChild(t2);
+                });
+            });
+
+            svg.appendChild(g);
+
+            // Ring line
+            const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            ring.setAttribute('cx', cx);
+            ring.setAttribute('cy', cy);
+            ring.setAttribute('r', R2);
+            ring.setAttribute('class', 'ring-line');
+            svg.appendChild(ring);
+
+            // Hub
+            const hub = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            hub.setAttribute('cx', cx);
+            hub.setAttribute('cy', cy);
+            hub.setAttribute('r', R3);
+            hub.setAttribute('class', 'hub');
+            svg.appendChild(hub);
+
+            // Hub text
+            const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            label.setAttribute('x', cx);
+            label.setAttribute('y', cy - 18);
+            label.setAttribute('class', 'hub-label');
+            label.textContent = 'SELECTED';
+            svg.appendChild(label);
+
+            const keyText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            keyText.setAttribute('x', cx);
+            keyText.setAttribute('y', cy + 6);
+            keyText.setAttribute('class', 'hub-key');
+            keyText.id = 'hubKey';
+            keyText.textContent = '—';
+            svg.appendChild(keyText);
+
+            const musText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            musText.setAttribute('x', cx);
+            musText.setAttribute('y', cy + 24);
+            musText.setAttribute('class', 'hub-musical');
+            musText.id = 'hubMusical';
+            musText.textContent = '';
+            svg.appendChild(musText);
+        }
+
+        function select(key) {
+            selected = key;
+            const compat = getCompat(key);
+            const all = [...compat.same, ...compat.adj, ...compat.rel, ...compat.par].map(c => c.k);
+
+            // Update hub
+            document.getElementById('hubKey').textContent = key;
+            document.getElementById('hubMusical').textContent = getMusical(key);
+
+            // Update display
+            document.getElementById('selectedCode').textContent = key;
+            document.getElementById('selectedMusical').textContent = getMusical(key);
+            document.getElementById('selectedCard').classList.add('has-selection');
+
+            // Update segments
+            document.querySelectorAll('.wheel-segment').forEach(seg => {
+                const k = seg.dataset.key;
+                seg.classList.remove('selected', 'compatible', 'dimmed');
+                if (k === key) seg.classList.add('selected');
+                else if (all.includes(k)) seg.classList.add('compatible');
+                else seg.classList.add('dimmed');
+            });
+
+            // Update chips
+            const chips = [];
+            compat.same.forEach(c => chips.push(`<div class="chip same" data-key="${c.k}">${c.k}</div>`));
+            compat.adj.forEach(c => {
+                const arrow = c.d === 'up' ? '↑' : '↓';
+                const cls = c.d === 'up' ? 'up' : 'down';
+                chips.push(`<div class="chip adjacent" data-key="${c.k}"><span class="arrow ${cls}">${arrow}</span>${c.k}</div>`);
+            });
+            compat.rel.forEach(c => chips.push(`<div class="chip relative" data-key="${c.k}">↔${c.k}</div>`));
+            compat.par.forEach(c => chips.push(`<div class="chip parallel" data-key="${c.k}">⚡${c.k}</div>`));
+
+            document.getElementById('compatChips').innerHTML = chips.join('');
+            document.querySelectorAll('.chip').forEach(chip => {
+                chip.onclick = () => select(chip.dataset.key);
+            });
+
+            document.getElementById('clearBtn').style.display = 'flex';
+        }
+
+        function clear() {
+            selected = null;
+            document.getElementById('hubKey').textContent = '—';
+            document.getElementById('hubMusical').textContent = '';
+            document.getElementById('selectedCode').textContent = '—';
+            document.getElementById('selectedMusical').textContent = 'Click any key';
+            document.getElementById('selectedCard').classList.remove('has-selection');
+            document.querySelectorAll('.wheel-segment').forEach(s => s.classList.remove('selected', 'compatible', 'dimmed'));
+            document.getElementById('compatChips').innerHTML = '<span class="empty-state">Select a key on the wheel</span>';
+            document.getElementById('clearBtn').style.display = 'none';
+        }
+
+        function buildKeyGrid() {
+            const grid = document.getElementById('keyGrid');
+            grid.innerHTML = data.map(d => `
+                <div class="key-item"><span class="code">${d.n}A</span><span class="musical">${d.m}</span></div>
+                <div class="key-item"><span class="code">${d.n}B</span><span class="musical">${d.M}</span></div>
+            `).join('');
+        }
+
+        function setupSections() {
+            document.querySelectorAll('.section-header').forEach(h => {
+                h.onclick = () => {
+                    const id = h.dataset.section + 'Content';
+                    h.classList.toggle('collapsed');
+                    document.getElementById(id).classList.toggle('hidden');
+                };
+            });
+        }
+
+        function setupJourney() {
+            document.querySelectorAll('.journey-step').forEach(s => {
+                s.onclick = () => select(s.dataset.key);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            render();
+            buildKeyGrid();
+            setupSections();
+            setupJourney();
+            document.getElementById('clearBtn').onclick = clear;
+        });
+    </script>
+</body>
+</html>
