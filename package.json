@@ -1,0 +1,11 @@
+{
+  "name": "camelot-keys",
+  "version": "1.0.0",
+  "description": "Visual harmonic mixing wheel for DJs",
+  "scripts": {
+    "build": "echo 'Static site - no build required'",
+    "preview": "npx serve ."
+  },
+  "keywords": ["camelot", "dj", "harmonic-mixing", "music"],
+  "license": "MIT"
+}
